@@ -57,7 +57,7 @@ resources:
       Properties:
         Protocol: sqs
         Endpoint: !GetAtt SqsPe.Arn
-        TopicArn: !Ref AppointmentTopic
+        TopicArn: !Ref AppointmentsTopic
         FilterPolicy: # Solo acepta mensajes con countryISO: "PE"
           countryISO:
             - "PE"
@@ -67,7 +67,7 @@ resources:
       Properties:
         Protocol: sqs
         Endpoint: !GetAtt SqsCl.Arn
-        TopicArn: !Ref AppointmentTopic
+        TopicArn: !Ref AppointmentsTopic
         FilterPolicy: # Solo acepta mensajes con countryISO: "CL"
           countryISO:
             - "CL"
@@ -107,31 +107,29 @@ resources:
               Condition:
                 ArnEquals:
                   aws:SourceArn: !GetAtt AppointmentCompletionRule.Arn
+  Outputs:
+    #permite que se pueda referenciar al nombre de estos elementos desde funciones lambda, event bridge, etc
+    SqsPeArn:
+      #obtiene el Arn del recurso
+      Value: !GetAtt SqsPe.Arn
+      #hace que el Arn sea publico dentro de nuestra cuenta AWS bajo el nombre especificado
+      Export:
+        Name: ${self:service}-SqsPeArn
 
-    # accesibilidad de los recursos desde dentro o desde fuera
-    Outputs:
-      #permite que se pueda referenciar al nombre de estos elementos desde funciones lambda, event bridge, etc
-      SqsPeArn:
-        #obtiene el Arn del recurso
-        Value: !GetAtt SqsPe.Arn
-        #hace que el Arn sea publico dentro de nuestra cuenta AWS bajo el nombre especificado
-        Export:
-          Name: ${self:service}-SqsPeArn
+    SqsClArn:
+      Value: !GetAtt SqsCl.Arn
+      Export:
+        Name: ${self:service}-SqsClArn
 
-      SqsClArn:
-        Value: !GetAtt SqsCl.Arn
-        Export:
-          Name: ${self:service}-SqsClArn
+    AppointmentsTopicArn:
+      Value: !Ref AppointmentsTopic
+      Export:
+        Name: ${self:service}-AppointmentsTopicArn
 
-      AppointmentTopicArn:
-        Value: !Ref AppointmentTopic
-        Export:
-          Name: ${self:service}-AppointmentTopicArn
-
-      SqsReturnArn:
-        Value: !GetAtt SqsReturn.Arn
-        Export:
-          Name: ${self:service}-SqsReturnArn
+    SqsReturnArn:
+      Value: !GetAtt SqsReturn.Arn
+      Export:
+        Name: ${self:service}-SqsReturnArn
 
 functions:
   hello:
