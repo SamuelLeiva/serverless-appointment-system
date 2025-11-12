@@ -1,0 +1,32 @@
+# "org" ensures this Service is used with the correct Serverless Framework Access Key.
+org: lpilas
+# "app" enables Serverless Framework Dashboard features and sharing them with other Services.
+app: serverless-appointment-system
+# "service" is the name of this project. This will also be added to your AWS resource names.
+service: serverless-appointment-system
+
+frameworkVersion: '4'
+
+provider:
+  name: aws
+  runtime: nodejs20.x
+  region: us-east-1
+
+functions:
+  hello:
+    handler: src/handler.hello
+    events:
+      - httpApi:
+          path: /
+          method: get
+
+# Build nativo en Serverless v4 (reemplaza serverless-esbuild)
+build:
+  esbuild: true
+  minify: false
+  sourcemap: true
+  target: node20
+  platform: node
+
+plugins:
+  - serverless-offline
