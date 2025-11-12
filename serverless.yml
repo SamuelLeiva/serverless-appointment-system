@@ -52,7 +52,26 @@ resources:
         QueueName: AppointmentsClQueue
         MessageRetentionPeriod: 1209600 # 14 días en segundos
 
-    
+    SqsPeSubscription: # Suscripción de la cola de Perú al tópico con filtro
+      Type: AWS::SNS::Subscription
+      Properties:
+        Protocol: sqs
+        Endpoint: !GetAtt SqsPe.Arn 
+        TopicArn: !Ref AppointmentTopic 
+        FilterPolicy: # Solo acepta mensajes con countryISO: "PE"
+          countryISO:
+            - "PE"
+
+    SqsClSubscription: # Suscripción de la cola de Chile al tópico con filtro
+      Type: AWS::SNS::Subscription
+      Properties:
+        Protocol: sqs
+        Endpoint: !GetAtt SqsCl.Arn 
+        TopicArn: !Ref AppointmentTopic
+        FilterPolicy: # Solo acepta mensajes con countryISO: "CL"
+          countryISO:
+            - "CL"
+
 
 functions:
   hello:
