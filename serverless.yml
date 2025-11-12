@@ -160,6 +160,38 @@ functions:
         Resource:
           - !Ref AppointmentsTopic
 
+  appointment_pe:
+    handler: src/adapters/handlers/country/peHandler.handler
+    timeout: 30 # Tiempo de espera para la DB simulada
+    environment:
+      MYSQL_PE_HOST: "rds-host-pe-simulado.com" # BD simulada
+      EVENT_BRIDGE_SOURCE: appointment.service # Fuente del evento para EventBridge
+    events:
+      - sqs: # Trigger SQS para Perú
+          arn: !GetAtt SqsPe.Arn
+          batchSize: 1 # Procesar un mensaje a la vez (por seguridad)
+    iamRoleStatements:
+      # Permiso crucial para enviar el evento de conformidad a EventBridge
+      - Effect: Allow
+        Action:
+          - events:PutEvents
+        Resource: "*" # Permiso para escribir en el bus de eventos 'default'
+
+  appointment_cl:
+    handler: src/adapters/handlers/country/clHandler.handler
+    timeout: 30
+    environment:
+      MYSQL_CL_HOST: "rds-host-cl-simulado.com" # BD simulada
+      EVENT_BRIDGE_SOURCE: appointment.service
+    events:
+      - sqs: # Trigger SQS para Chile
+          arn: !GetAtt SqsCl.Arn
+          batchSize: 1
+    iamRoleStatements:
+      - Effect: Allow
+        Action:
+          - events:PutEvents
+        Resource: "*"
 # Build nativo en Serverless v4 (reemplaza serverless-esbuild)
 build:
   esbuild: true
