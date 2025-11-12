@@ -72,6 +72,11 @@ resources:
           countryISO:
             - "CL"
 
+    SqsReturn: #Cola de mensajes para retornos
+      Type: AWS::SQS::Queue
+      Properties:
+        QueueName: AppointmentsReturnQueue
+        MessageRetentionPeriod: 1209600 # 14 días en segundos
 
 functions:
   hello:
