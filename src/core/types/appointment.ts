@@ -2,7 +2,7 @@
 export interface AppointmentRequest {
     insuredId: string;
     scheduleId: number;
-    countryISO: string;
+    countryISO: 'PE' | 'CL';
 }
 
 // Estructura almacenada en dynamoDB

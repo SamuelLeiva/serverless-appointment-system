@@ -11,6 +11,9 @@ provider:
   name: aws
   runtime: nodejs20.x
   region: us-east-1
+  environment: # variables de entorno accesibles desde las funciones lambda
+    APPOINTMENT_TOPIC_ARN: !Ref AppointmentsTopic
+    APPOINTMENTS_TABLE_NAME: !Ref AppointmentsTable
 
 resources:
   Resources:
@@ -132,12 +135,26 @@ resources:
         Name: ${self:service}-SqsReturnArn
 
 functions:
-  hello:
-    handler: src/handler.hello
+  appointment:
+    handler: src/adapters/handlers/appointmentHandler.handler
     events:
       - httpApi:
-          path: /
-          method: get
+          path: /appointment
+          method: post
+    iamRoleStatements:
+      - Effect: "Allow"
+        Action:
+          - dynamodb:PutItem
+          - dynamodb:UpdateItem
+          - dynamodb:Query
+        Resource:
+          - !GetAtt AppointmentsTable.Arn
+          - !Sub "${AppointmentsTable.Arn}/index/InsuredIdIndex" # permiso para el índice secundario global
+      - Effect: "Allow"
+        Action:
+          - sns:Publish
+        Resource:
+          - !Ref AppointmentsTopic
 
 # Build nativo en Serverless v4 (reemplaza serverless-esbuild)
 build:
