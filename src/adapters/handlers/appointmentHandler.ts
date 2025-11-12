@@ -4,13 +4,16 @@ import { RegisterAppointmentUseCase } from "../../core/use-cases/registerAppoint
 import { SnsService } from "../aws/snsService";
 import { DynamoDBRepository } from "../database/DynamoDBRepository";
 import { ListAppointmentsUseCase } from "../../core/use-cases/listAppointmentsUseCase";
+import { UuidGenerator } from "../utils/uuidGenerator";
 
 const appointmentRepository = new DynamoDBRepository();
 const snsService = new SnsService();
+const idGenerator = new UuidGenerator();
 
 const registerAppointmentUseCase = new RegisterAppointmentUseCase(
   appointmentRepository,
-  snsService
+  snsService,
+  idGenerator
 );
 
 const listAppointmentsUseCase = new ListAppointmentsUseCase(
