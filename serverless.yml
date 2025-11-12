@@ -14,13 +14,13 @@ provider:
 
 resources:
   Resources:
-    AppointmentsTable:
+    AppointmentsTable: #Declaración de la tabla en DynamoDB
       Type: AWS::DynamoDB::Table
       Properties:
-        TableName: Appointments
+        TableName: AppointmentsTable
         KeySchema:
           - AttributeName: id
-            AttributeType: S
+            KeyType: HASH
         AttributeDefinitions:
           - AttributeName: id
             AttributeType: S
@@ -35,6 +35,24 @@ resources:
                 KeyType: HASH # Clave de Partición para el GSI
             Projection:
               ProjectionType: ALL # Proyecta todos los atributos para que el listado sea completo
+    AppointmentsTopic: #Declaración del tópico en SNS
+      Type: AWS::SNS::Topic
+      Properties:
+        TopicName: AppointmentsTopic
+    
+    SqsPe: #Cola de mensajes para Perú
+      Type: AWS::SQS::Queue
+      Properties:
+        QueueName: AppointmentsPeQueue
+        MessageRetentionPeriod: 1209600 # 14 días en segundos
+
+    SqsCl: #Cola de mensajes para Chile
+      Type: AWS::SQS::Queue
+      Properties:
+        QueueName: AppointmentsClQueue
+        MessageRetentionPeriod: 1209600 # 14 días en segundos
+
+    
 
 functions:
   hello:
