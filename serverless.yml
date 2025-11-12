@@ -5,7 +5,7 @@ app: serverless-appointment-system
 # "service" is the name of this project. This will also be added to your AWS resource names.
 service: serverless-appointment-system
 
-frameworkVersion: '4'
+frameworkVersion: "4"
 
 provider:
   name: aws
@@ -39,7 +39,7 @@ resources:
       Type: AWS::SNS::Topic
       Properties:
         TopicName: AppointmentsTopic
-    
+
     SqsPe: #Cola de mensajes para Perú
       Type: AWS::SQS::Queue
       Properties:
@@ -56,8 +56,8 @@ resources:
       Type: AWS::SNS::Subscription
       Properties:
         Protocol: sqs
-        Endpoint: !GetAtt SqsPe.Arn 
-        TopicArn: !Ref AppointmentTopic 
+        Endpoint: !GetAtt SqsPe.Arn
+        TopicArn: !Ref AppointmentTopic
         FilterPolicy: # Solo acepta mensajes con countryISO: "PE"
           countryISO:
             - "PE"
@@ -66,7 +66,7 @@ resources:
       Type: AWS::SNS::Subscription
       Properties:
         Protocol: sqs
-        Endpoint: !GetAtt SqsCl.Arn 
+        Endpoint: !GetAtt SqsCl.Arn
         TopicArn: !Ref AppointmentTopic
         FilterPolicy: # Solo acepta mensajes con countryISO: "CL"
           countryISO:
@@ -77,6 +77,61 @@ resources:
       Properties:
         QueueName: AppointmentsReturnQueue
         MessageRetentionPeriod: 1209600 # 14 días en segundos
+
+    AppointmentCompletionRule: # Regla de EventBridge para completar citas
+      Type: AWS::Events::Rule
+      Properties:
+        Name: AppointmentCompletionRule
+        EventBusName: default # Usamos el bus de eventos por defecto de AWS
+        EventPattern: # El patrón de evento que estaremos escuchando
+          source:
+            - "appointment.service" # El servicio que emite el evento
+          detail-type:
+            - "AppointmentCompleted" # El tipo de evento
+        Targets:
+          - Arn: !GetAtt SqsReturn.Arn # El destino es el ARN de la cola de retorno
+            Id: SqsReturnTarget
+
+    SqsReturnPolicy: # política SQS para permitir que EventBridge escriba en la cola
+      Type: AWS::SQS::QueuePolicy
+      Properties:
+        Queues:
+          - !Ref SqsReturn
+        PolicyDocument:
+          Statement:
+            - Effect: Allow
+              Principal:
+                Service: events.amazonaws.com # Permite a EventBridge enviar mensajes
+              Action: SQS:SendMessage
+              Resource: !GetAtt SqsReturn.Arn
+              Condition:
+                ArnEquals:
+                  aws:SourceArn: !GetAtt AppointmentCompletionRule.Arn
+
+    # accesibilidad de los recursos desde dentro o desde fuera
+    Outputs:
+      #permite que se pueda referenciar al nombre de estos elementos desde funciones lambda, event bridge, etc
+      SqsPeArn:
+        #obtiene el Arn del recurso
+        Value: !GetAtt SqsPe.Arn
+        #hace que el Arn sea publico dentro de nuestra cuenta AWS bajo el nombre especificado
+        Export:
+          Name: ${self:service}-SqsPeArn
+
+      SqsClArn:
+        Value: !GetAtt SqsCl.Arn
+        Export:
+          Name: ${self:service}-SqsClArn
+
+      AppointmentTopicArn:
+        Value: !Ref AppointmentTopic
+        Export:
+          Name: ${self:service}-AppointmentTopicArn
+
+      SqsReturnArn:
+        Value: !GetAtt SqsReturn.Arn
+        Export:
+          Name: ${self:service}-SqsReturnArn
 
 functions:
   hello:
