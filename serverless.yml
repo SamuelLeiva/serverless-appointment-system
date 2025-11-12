@@ -14,6 +14,7 @@ provider:
   environment: # variables de entorno accesibles desde las funciones lambda
     APPOINTMENT_TOPIC_ARN: !Ref AppointmentsTopic
     APPOINTMENTS_TABLE_NAME: !Ref AppointmentsTable
+    INSURED_ID_GSI_NAME: InsuredIdIndex # nombre del índice secundario global
 
 resources:
   Resources:
@@ -141,6 +142,9 @@ functions:
       - httpApi:
           path: /appointment
           method: post
+      - httpApi:
+          path: /appointment/{insuredId}
+          method: get
     iamRoleStatements:
       - Effect: "Allow"
         Action:

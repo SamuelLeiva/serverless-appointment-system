@@ -3,6 +3,7 @@ import { AppointmentRequest } from "../../core/types/appointment";
 import { RegisterAppointmentUseCase } from "../../core/use-cases/registerAppointmentUseCase";
 import { SnsService } from "../aws/snsService";
 import { DynamoDBRepository } from "../database/DynamoDBRepository";
+import { ListAppointmentsUseCase } from "../../core/use-cases/listAppointmentsUseCase";
 
 const appointmentRepository = new DynamoDBRepository();
 const snsService = new SnsService();
@@ -10,6 +11,10 @@ const snsService = new SnsService();
 const registerAppointmentUseCase = new RegisterAppointmentUseCase(
   appointmentRepository,
   snsService
+);
+
+const listAppointmentsUseCase = new ListAppointmentsUseCase(
+  appointmentRepository
 );
 
 // Función de utilidad para validar la entrada
@@ -31,27 +36,66 @@ function validateRequest(body: any): AppointmentRequest {
 }
 
 export const handler: APIGatewayProxyHandlerV2 = async (event) => {
+  const method = event.requestContext.http.method;
+  const path = event.requestContext.http.path;
+
   try {
-    if (!event.body) {
+    if (method === "POST" && path === "/appointment") {
+      if (!event.body) {
+        return {
+          statusCode: 400,
+          body: JSON.stringify({ message: "Cuerpo de la petición vacío." }),
+        };
+      }
+
+      const body = JSON.parse(event.body);
+      const requestData = validateRequest(body);
+
+      await registerAppointmentUseCase.execute(requestData);
+
       return {
-        statusCode: 400,
-        body: JSON.stringify({ message: "Cuerpo de la petición vacío." }),
+        statusCode: 202,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          message:
+            "Agendamiento en proceso. Consulta el estado usando el GET /appointment/{insuredId}.",
+        }),
       };
     }
 
-    // Parseo y Validación
-    const body = JSON.parse(event.body);
-    const requestData = validateRequest(body);
+    if (method === "GET" && path.startsWith("/appointment/")) {
+      const insuredId = event.pathParameters?.insuredId;
 
-    await registerAppointmentUseCase.execute(requestData);
+      if (!insuredId) {
+        return {
+          statusCode: 400,
+          body: JSON.stringify({
+            message: "Debe especificar el insuredId en la ruta.",
+          }),
+        };
+      }
+
+      if (insuredId.length !== 5) {
+        return {
+          statusCode: 400,
+          body: JSON.stringify({
+            message: "insuredId inválido (debe ser string de 5 dígitos).",
+          }),
+        };
+      }
+
+      const appointments = await listAppointmentsUseCase.execute(insuredId);
+
+      return {
+        statusCode: 200,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(appointments),
+      };
+    }
 
     return {
-      statusCode: 202,
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        message:
-          "Agendamiento en proceso. Consulta el estado usando el GET /appointment/{insuredId}.",
-      }),
+      statusCode: 404,
+      body: JSON.stringify({ message: "Ruta no encontrada." }),
     };
   } catch (error) {
     console.error("Error al procesar la petición:", error);
