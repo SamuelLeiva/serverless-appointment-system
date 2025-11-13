@@ -1,20 +1,20 @@
 # 🏥 Serverless Appointment System
 
-This repository contains the source code for an asynchronous appointment scheduling and processing service built using Serverless Framework and deployed on AWS Lambda (Node.js/TypeScript).
+Este repositorio contiene el código fuente de un servicio asincrónico de programación y procesamiento de citas, desarrollado con Serverless Framework y desplegado en AWS Lambda (Node.js/TypeScript) junto con otros servicios de Amazon (SQS, SNS, DynamoDB).
 
-## Usage
+## Uso
 
-### Deployment
+### Despliegue
 
-In order to deploy the example, you need to run the following command:
+Para desplegar el proyecto, ejecuta el siguiente comando:
 
+```bash
+npm run deploy
 ```
-serverless deploy
-```
 
-After running deploy, you should see output similar to:
+Después de ejecutar el comando de despliegue, deberías ver una salida similar a la siguiente:
 
-```
+```bash
 Deploying "serverless-http-api" to stage "dev" (us-east-1)
 
 ✔ Service deployed to stack serverless-http-api-dev (91s)
@@ -24,32 +24,16 @@ functions:
   hello: serverless-http-api-dev-hello (1.6 kB)
 ```
 
-_Note_: In current form, after deployment, your API is public and can be invoked by anyone. For production deployments, you might want to configure an authorizer. For details on how to do that, refer to [HTTP API (API Gateway V2) event docs](https://www.serverless.com/framework/docs/providers/aws/events/http-api).
-
-### Invocation
-
-After successful deployment, you can call the created application via HTTP:
-
-```
-curl https://xxxxxxx.execute-api.us-east-1.amazonaws.com/
-```
-
-Which should result in response similar to:
-
-```json
-{ "message": "Go Serverless v4! Your function executed successfully!" }
-```
-
 ## API Endpoints
 
-All endpoints are managed by the AppointmentServiceLambda.
+Todos los endpoints son gestionados por AppointmentServiceLambda.
 
 | Method   | Path                       | Description                                                             |
 |----------|----------------------------|-------------------------------------------------------------------------|
-| POST     | /appointment               | Submits a new appointment request. Returns 202 Accepted immediately.    |
-| GET      | /appointment/{insuredId}   | Retrieves a list of appointments associated with the given insuredId.   |
+| POST     | /appointment               | Envía una nueva solicitud de cita. Retorna 202 Accepted inmediatamente. |
+| GET      | /appointment/{insuredId}   | Obtiene una lista de citas asociadas al insuredId proporcionado.        |
 
-### Example of POST Request's body
+### Ejemplo del cuerpo (body) de la solicitud POST
 
 ```json
 {
