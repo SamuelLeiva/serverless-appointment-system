@@ -1,19 +1,36 @@
 import { IAppointmentRepository } from "@/core/ports/appointmentRepository";
 import { CompleteAppointmentUseCase } from "@/core/use-cases/completeAppointmentUseCase";
-
 describe('CompleteAppointmentUseCase', () => {
-  it('debería actualizar el estado de la cita a completed', async () => {
-    const mockRepo: jest.Mocked<IAppointmentRepository> = {
+  let mockRepo: jest.Mocked<IAppointmentRepository>;
+  let useCase: CompleteAppointmentUseCase;
+
+  beforeEach(() => {
+    mockRepo = {
       save: jest.fn(),
       findByInsuredId: jest.fn(),
       updateStatus: jest.fn(),
     };
 
-    const useCase = new CompleteAppointmentUseCase(mockRepo);
+    useCase = new CompleteAppointmentUseCase(mockRepo);
+  });
 
-    await useCase.execute('abc123');
+  it('should update appointment status to "completed"', async () => {
+    // Arrange
+    const appointmentId = 'abc123';
 
-    expect(mockRepo.updateStatus).toHaveBeenCalledWith('abc123', 'completed');
+    // Act
+    await useCase.execute(appointmentId);
+
+    // Assert
+    expect(mockRepo.updateStatus).toHaveBeenCalledWith(appointmentId, 'completed');
     expect(mockRepo.updateStatus).toHaveBeenCalledTimes(1);
+  });
+
+  it('should throw if repository update fails', async () => {
+    // Arrange
+    mockRepo.updateStatus.mockRejectedValueOnce(new Error('Database error'));
+
+    // Act & Assert
+    await expect(useCase.execute('abc123')).rejects.toThrow('Database error');
   });
 });
