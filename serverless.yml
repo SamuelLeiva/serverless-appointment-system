@@ -39,6 +39,7 @@ resources:
                 KeyType: HASH # Clave de Partición para el GSI
             Projection:
               ProjectionType: ALL # Proyecta todos los atributos para que el listado sea completo
+
     AppointmentsTopic: #Declaración del tópico en SNS
       Type: AWS::SNS::Topic
       Properties:
@@ -96,6 +97,39 @@ resources:
           - Arn: !GetAtt SqsReturn.Arn # El destino es el ARN de la cola de retorno
             Id: SqsReturnTarget
 
+      #Políticas de las colas
+    SqsPePolicy:
+      Type: AWS::SQS::QueuePolicy
+      Properties:
+        Queues:
+          - !Ref SqsPe
+        PolicyDocument:
+          Statement:
+            - Effect: Allow
+              Principal:
+                Service: sns.amazonaws.com
+              Action: SQS:SendMessage
+              Resource: !GetAtt SqsPe.Arn
+              Condition:
+                ArnEquals:
+                  aws:SourceArn: !Ref AppointmentsTopic
+
+    SqsClPolicy:
+      Type: AWS::SQS::QueuePolicy
+      Properties:
+        Queues:
+          - !Ref SqsCl
+        PolicyDocument:
+          Statement:
+            - Effect: Allow
+              Principal:
+                Service: sns.amazonaws.com
+              Action: SQS:SendMessage
+              Resource: !GetAtt SqsCl.Arn
+              Condition:
+                ArnEquals:
+                  aws:SourceArn: !Ref AppointmentsTopic
+
     SqsReturnPolicy: # política SQS para permitir que EventBridge escriba en la cola
       Type: AWS::SQS::QueuePolicy
       Properties:
@@ -111,29 +145,29 @@ resources:
               Condition:
                 ArnEquals:
                   aws:SourceArn: !GetAtt AppointmentCompletionRule.Arn
-  Outputs:
-    #permite que se pueda referenciar al nombre de estos elementos desde funciones lambda, event bridge, etc
-    SqsPeArn:
-      #obtiene el Arn del recurso
-      Value: !GetAtt SqsPe.Arn
-      #hace que el Arn sea publico dentro de nuestra cuenta AWS bajo el nombre especificado
-      Export:
-        Name: ${self:service}-SqsPeArn
+  # Outputs:
+  #   #permite que se pueda referenciar al nombre de estos elementos desde funciones lambda, event bridge, etc
+  #   SqsPeArn:
+  #     #obtiene el Arn del recurso
+  #     Value: !GetAtt SqsPe.Arn
+  #     #hace que el Arn sea publico dentro de nuestra cuenta AWS bajo el nombre especificado
+  #     Export:
+  #       Name: ${self:service}-SqsPeArn
 
-    SqsClArn:
-      Value: !GetAtt SqsCl.Arn
-      Export:
-        Name: ${self:service}-SqsClArn
+  #   SqsClArn:
+  #     Value: !GetAtt SqsCl.Arn
+  #     Export:
+  #       Name: ${self:service}-SqsClArn
 
-    AppointmentsTopicArn:
-      Value: !Ref AppointmentsTopic
-      Export:
-        Name: ${self:service}-AppointmentsTopicArn
+  #   AppointmentsTopicArn:
+  #     Value: !Ref AppointmentsTopic
+  #     Export:
+  #       Name: ${self:service}-AppointmentsTopicArn
 
-    SqsReturnArn:
-      Value: !GetAtt SqsReturn.Arn
-      Export:
-        Name: ${self:service}-SqsReturnArn
+  #   SqsReturnArn:
+  #     Value: !GetAtt SqsReturn.Arn
+  #     Export:
+  #       Name: ${self:service}-SqsReturnArn
 
 functions:
   appointment:
@@ -192,6 +226,20 @@ functions:
         Action:
           - events:PutEvents
         Resource: "*"
+
+  appointmentSqs:
+    # Handler ÚNICO para SQS
+    handler: src/adapters/handlers/appointmentHandler.sqsHandler
+    events:
+      - sqs:
+          arn: !GetAtt SqsReturn.Arn
+          batchSize: 1
+    iamRoleStatements:
+      # Esta función solo necesita el permiso para actualizar DynamoDB (UpdateItem)
+      - Effect: Allow
+        Action:
+          - dynamodb:UpdateItem
+        Resource: !GetAtt AppointmentsTable.Arn
 # Build nativo en Serverless v4 (reemplaza serverless-esbuild)
 build:
   esbuild: true

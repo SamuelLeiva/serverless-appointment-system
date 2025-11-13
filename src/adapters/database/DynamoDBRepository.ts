@@ -1,5 +1,5 @@
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
-import { DynamoDBDocumentClient, PutCommand, QueryCommand } from "@aws-sdk/lib-dynamodb";
+import { DynamoDBDocumentClient, PutCommand, QueryCommand, UpdateCommand } from "@aws-sdk/lib-dynamodb";
 import { IAppointmentRepository } from "../../core/ports/appointmentRepository";
 import { AppointmentDB, AppointmentRequest } from "../../core/types/appointment";
 
@@ -40,5 +40,23 @@ export class DynamoDBRepository implements IAppointmentRepository {
     const response = await dbDocClient.send(command);
 
     return (response.Items as AppointmentDB[]) || []
+  }
+
+  async updateStatus(id: string, newStatus: "completed"): Promise<void> {
+    const command = new UpdateCommand({
+            TableName: TABLE_NAME,
+            Key: { id },
+            UpdateExpression: 'SET #status = :s, updatedAt = :u',
+            ExpressionAttributeNames: {
+                '#status': 'status',
+            },
+            ExpressionAttributeValues: {
+                ':s': newStatus,
+                ':u': new Date().toISOString(),
+            },
+            ReturnValues: 'ALL_NEW',
+        });
+
+        await dbDocClient.send(command);
   }
 }

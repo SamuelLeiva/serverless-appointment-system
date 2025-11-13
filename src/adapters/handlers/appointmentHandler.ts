@@ -1,10 +1,11 @@
-import { APIGatewayProxyHandlerV2 } from "aws-lambda";
+import { APIGatewayProxyHandlerV2, SQSEvent, SQSHandler } from "aws-lambda";
 import { AppointmentRequest } from "../../core/types/appointment";
 import { RegisterAppointmentUseCase } from "../../core/use-cases/registerAppointmentUseCase";
 import { SnsService } from "../aws/snsService";
 import { DynamoDBRepository } from "../database/DynamoDBRepository";
 import { ListAppointmentsUseCase } from "../../core/use-cases/listAppointmentsUseCase";
 import { UuidGenerator } from "../utils/uuidGenerator";
+import { CompleteAppointmentUseCase } from "../../core/use-cases/completeAppointmentUseCase";
 
 const appointmentRepository = new DynamoDBRepository();
 const snsService = new SnsService();
@@ -17,6 +18,10 @@ const registerAppointmentUseCase = new RegisterAppointmentUseCase(
 );
 
 const listAppointmentsUseCase = new ListAppointmentsUseCase(
+  appointmentRepository
+);
+
+const completeAppointmentUseCase = new CompleteAppointmentUseCase(
   appointmentRepository
 );
 
@@ -38,11 +43,40 @@ function validateRequest(body: any): AppointmentRequest {
   return { insuredId, scheduleId, countryISO } as AppointmentRequest;
 }
 
+// HANDLER ESPECÍFICO PARA SQS
+export const sqsHandler: SQSHandler = async (event: SQSEvent) => {
+  for (const record of event.Records) {
+    try {
+      console.log("Mensaje recibido de SQS:", record.body);
+      // El mensaje de SQS viene de EventBridge, que envía el objeto Detail
+      const ebMessage = JSON.parse(record.body);
+
+      const detail = ebMessage.detail;
+      const appointmentId = detail.appointmentId;
+
+      if (!appointmentId) {
+        console.error("Mensaje de conformidad sin appointmentId, ignorando.");
+        continue;
+      }
+
+      // Ejecución del Caso de Uso para cerrar el ciclo
+      await completeAppointmentUseCase.execute(appointmentId);
+      console.log(
+        `Cita ${appointmentId} actualizada a 'completed' en DynamoDB.`
+      );
+    } catch (error) {
+      console.error(`Error procesando mensaje SQS de retorno: ${error}`);
+      throw error; // Esto hace que SQS reintente el mensaje
+    }
+  }
+};
+
 export const handler: APIGatewayProxyHandlerV2 = async (event) => {
-  const method = event.requestContext.http.method;
+  const method = event.requestContext.http.method; // Obtener el método HTTP y path
   const path = event.requestContext.http.path;
 
   try {
+    // Ruta POST
     if (method === "POST" && path === "/appointment") {
       if (!event.body) {
         return {
@@ -55,6 +89,8 @@ export const handler: APIGatewayProxyHandlerV2 = async (event) => {
       const requestData = validateRequest(body);
 
       await registerAppointmentUseCase.execute(requestData);
+      
+      console.log(`Cita ${requestData.insuredId} registrada con estado pending.`);
 
       return {
         statusCode: 202,
@@ -66,7 +102,9 @@ export const handler: APIGatewayProxyHandlerV2 = async (event) => {
       };
     }
 
+    //RUTA GET
     if (method === "GET" && path.startsWith("/appointment/")) {
+      // El pathParameters contiene los valores de la ruta (/appointment/12345)
       const insuredId = event.pathParameters?.insuredId;
 
       if (!insuredId) {
@@ -78,6 +116,7 @@ export const handler: APIGatewayProxyHandlerV2 = async (event) => {
         };
       }
 
+      // Puedes reutilizar la validación básica del insuredId
       if (insuredId.length !== 5) {
         return {
           statusCode: 400,
@@ -87,15 +126,17 @@ export const handler: APIGatewayProxyHandlerV2 = async (event) => {
         };
       }
 
+      // Ejecución del Caso de Uso para Listar
       const appointments = await listAppointmentsUseCase.execute(insuredId);
 
       return {
         statusCode: 200,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(appointments),
+        body: JSON.stringify(appointments), // Retorna el arreglo de citas
       };
     }
 
+    // Si no coincide con ninguna ruta/método esperado
     return {
       statusCode: 404,
       body: JSON.stringify({ message: "Ruta no encontrada." }),
