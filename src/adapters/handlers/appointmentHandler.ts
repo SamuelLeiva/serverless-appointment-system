@@ -6,8 +6,9 @@ import { DynamoDBRepository } from "../database/DynamoDBRepository";
 import { ListAppointmentsUseCase } from "../../core/use-cases/listAppointmentsUseCase";
 import { UuidGenerator } from "../utils/uuidGenerator";
 import { CompleteAppointmentUseCase } from "../../core/use-cases/completeAppointmentUseCase";
+import { makeDynamoDBRepository } from "../../infrastructure/factories/dynamodbRepositoryFactory";
 
-const appointmentRepository = new DynamoDBRepository();
+const appointmentRepository = makeDynamoDBRepository();
 const snsService = new SnsService();
 const idGenerator = new UuidGenerator();
 
