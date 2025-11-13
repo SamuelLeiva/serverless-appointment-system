@@ -1,8 +1,9 @@
 import { SQSHandler } from "aws-lambda";
 import { ProcessAppointmentUseCase } from "../../../core/use-cases/processAppointmentUseCase";
-import { EventBridgeService } from "../../aws/eventBridgeService";
-import { MySqlRepository } from "../../database/MySqlRepository";
+import { EventBridgeService } from "../../../infrastructure/aws/eventBridgeService";
+import { MySqlRepository } from "../../../infrastructure/repositories/MySqlRepository";
 import { AppointmentDB } from "../../../core/types/appointment";
+import { makeEventBridgeService } from "../../../infrastructure/factories/eventBridgeServiceFactory";
 
 const PE_DB_CONFIG = {
   host: process.env.MYSQL_PE_HOST || "localhost-pe-sim",
@@ -10,7 +11,7 @@ const PE_DB_CONFIG = {
 };
 
 const peRepository = new MySqlRepository(PE_DB_CONFIG);
-const eventBridgeService = new EventBridgeService();
+const eventBridgeService = makeEventBridgeService();
 const processAppointmentUseCase = new ProcessAppointmentUseCase(
   peRepository,
   eventBridgeService

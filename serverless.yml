@@ -171,7 +171,7 @@ resources:
 
 functions:
   appointment:
-    handler: src/adapters/handlers/appointmentHandler.handler
+    handler: src/app/handlers/appointmentHandler.handler
     events:
       - httpApi:
           path: /appointment
@@ -195,7 +195,7 @@ functions:
           - !Ref AppointmentsTopic
 
   appointment_pe:
-    handler: src/adapters/handlers/country/peHandler.handler
+    handler: src/app/handlers/country/peHandler.handler
     timeout: 30 # Tiempo de espera para la DB simulada
     environment:
       MYSQL_PE_HOST: "rds-host-pe-simulado.com" # BD simulada
@@ -212,7 +212,7 @@ functions:
         Resource: "*" # Permiso para escribir en el bus de eventos 'default'
 
   appointment_cl:
-    handler: src/adapters/handlers/country/clHandler.handler
+    handler: src/app/handlers/country/clHandler.handler
     timeout: 30
     environment:
       MYSQL_CL_HOST: "rds-host-cl-simulado.com" # BD simulada
@@ -229,7 +229,7 @@ functions:
 
   appointmentSqs:
     # Handler ÚNICO para SQS
-    handler: src/adapters/handlers/appointmentHandler.sqsHandler
+    handler: src/app/handlers/appointmentHandler.sqsHandler
     events:
       - sqs:
           arn: !GetAtt SqsReturn.Arn

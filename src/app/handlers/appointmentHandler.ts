@@ -1,15 +1,15 @@
 import { APIGatewayProxyHandlerV2, SQSEvent, SQSHandler } from "aws-lambda";
 import { AppointmentRequest } from "../../core/types/appointment";
 import { RegisterAppointmentUseCase } from "../../core/use-cases/registerAppointmentUseCase";
-import { SnsService } from "../aws/snsService";
-import { DynamoDBRepository } from "../database/DynamoDBRepository";
+import { SnsService } from "../../infrastructure/aws/snsService";
 import { ListAppointmentsUseCase } from "../../core/use-cases/listAppointmentsUseCase";
 import { UuidGenerator } from "../utils/uuidGenerator";
 import { CompleteAppointmentUseCase } from "../../core/use-cases/completeAppointmentUseCase";
 import { makeDynamoDBRepository } from "../../infrastructure/factories/dynamodbRepositoryFactory";
+import { makeSnsService } from "../../infrastructure/factories/snsServiceFactory";
 
 const appointmentRepository = makeDynamoDBRepository();
-const snsService = new SnsService();
+const snsService = makeSnsService();
 const idGenerator = new UuidGenerator();
 
 const registerAppointmentUseCase = new RegisterAppointmentUseCase(
